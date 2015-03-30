@@ -8,12 +8,11 @@
 #define FALSE 0
 
 /* globals */
-long double PI = 3.141592653589793238462643;
+double PI = 3.141592653589793238462643;
 long long int pointCount;
 /* end globals  */
 
 /* helper function declarations */
-long long int power(int base, int exp);
 int isInCircle(double x, double y);
 /* end helper function declarations */
 
@@ -35,26 +34,14 @@ int main(int argc, char** argv) {
 			pointsInCircle++;
 		}
 	}
-	pointsInCircle *= 4;
-	printf("%Ld\n", pointsInCircle);
-	long double myPI = (long double)pointsInCircle/(long double)pointCount;
-	printf("  PI: %.15Lf\n", PI);	
-	printf("MyPI: %.15Lf\n", myPI);
+	double myPI = (double)pointsInCircle/(double)pointCount;
+	printf("  PI: %.15f\n", PI);	
+	printf("MyPI: %.15f\n", myPI*4);
 
 	return EXIT_SUCCESS;
 }
 
 /* helper function decfinitions */
-long long int power(int base, int exp) {
-	long long int output = 1;	
-	while(exp > 0) {
-		output *= base;
-		exp--;
-	}
-
-	return output;
-}
-
 int isInCircle(double x, double y) {
 	if(sqrt(x*x+y*y) <= 1) {
 		return TRUE;

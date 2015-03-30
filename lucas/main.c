@@ -6,26 +6,55 @@
 #include <math.h>
 #include "mtwist.h"
 
+#define MPI_ROOT_ID 0
+
+#define TRUE 1
+#define FALSE 0
+
 /* globals */
 int numProcs, myId, mpi_err;
-long double PI = 3.141592653589793238462643;
+double PI = 3.141592653589793238462643;
+double myPI, myPIfragment;
 long long int pointCount;
 /* end globals  */
 
 /* helper function declarations */
 void initMPI(int, char**);
-long long int power(int base, int exp);
+int isInCircle(double x, double y);
+double absolute(double x);
 /* end helper function declarations */
 
 int main(int argc, char** argv) {
+	if(argc != 2) {
+		fprintf(stderr, "Wrong arguments. Usage: %s <number-of-points>\n", argv[0]);
+		return EXIT_FAILURE;
+	}
+
 	initMPI(argc, argv);
 
-	long double pi = PI;
 	pointCount = atoll(argv[1]);
 	mt_seed();
-	int i;
-	for(i = 0; i < 10; ++i) {
-		printf("%d: %ld\n", myId, mt_lrand()%100);
+	
+	long long int pointsInCircle = 0;
+	long long int i;
+	double x, y;
+	int myCount = 0;
+	for(i = myId; i < pointCount; i=i+numProcs) {
+		x = mt_drand();
+		y = mt_drand();
+		if(isInCircle(x, y) == TRUE) {
+			pointsInCircle++;
+		}
+		myCount++;
+	}
+	myPIfragment = (double)pointsInCircle / (double)(pointCount);
+	MPI_Reduce(&myPIfragment, &myPI, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+	if(myId == MPI_ROOT_ID) {
+		myPI = myPI*4;
+		printf("  PI: %.15f\n", PI);	
+		printf("MyPI: %.15f\n", myPI);
+		printf("diff: %.15f\n\n", absolute(PI-myPI));
 	}
 
 	MPI_Finalize();
@@ -38,13 +67,19 @@ void initMPI(int argc, char** argv) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &myId);
 }
 
-long long int power(int base, int exp) {
-	long long int output = 1;	
-	while(exp > 0) {
-		output *= base;
-		exp--;
+int isInCircle(double x, double y) {
+	if(sqrt(x*x+y*y) <= 1) {
+		return TRUE;
+	} else {
+		return FALSE;
 	}
+}
 
-	return output;
+double absolute(double x) {
+	if(x<0) {
+		return x*-1;
+	} else {
+		return x;
+	}
 }
 /* end helper function decfinitions */
