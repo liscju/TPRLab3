@@ -52,15 +52,15 @@ class PiThreadSlaveWorker:
 
     def execute(self):
         synchronizeAll(self.comm)
-        result = PiThreadSlaveWorker.__perform_experiment(self.experiment_count, self.radius)
+        result = PiThreadSlaveWorker.__perform_experiment(self.experiment_count, self.radius, self.comm.rank)
         self.__inform_about_result(result)
 
     def __inform_about_result(self, result):
         self.comm.reduce(result,root=MPI_ROOT, op=MPI.SUM)
 
     @staticmethod
-    def __perform_experiment(experiment_count, radius):
-        picalc = PiCalculator(experiment_count,radius,TypicalRand2DGenerator())
+    def __perform_experiment(experiment_count, radius, worker_id):
+        picalc = PiCalculator(experiment_count,radius,TypicalRand2DGenerator(worker_id))
         return picalc.execute()
 
 
