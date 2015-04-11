@@ -1,7 +1,8 @@
-import numpy as np
 from mpi4py import MPI
 from calculators import PiCalculator
+from commons import pi_execute_reporter
 from randoms import TypicalRand2DGenerator
+
 
 MPI_ROOT = 0
 __author__ = 'lee'
@@ -14,12 +15,13 @@ class PiSequenceWorker:
         self.experiment_count = experiment_count
         self.radius = radius
 
+    @pi_execute_reporter("SEQUENCE")
     def execute(self):
         pi_calc = PiCalculator(self.experiment_count,self.radius,TypicalRand2DGenerator())
         circle_points = pi_calc.execute()
         all_points = self.experiment_count
         calculated_pi = PiCalculator.calculate_pi(circle_points,all_points)
-        print "SEQUENCE Calculated pi = " + str(calculated_pi)
+        return calculated_pi
 
 
 class PiThreadMasterWorker:
@@ -28,13 +30,13 @@ class PiThreadMasterWorker:
         self.comm = comm
         self.experiment_count = experiment_count
 
+    @pi_execute_reporter("CONCURRENT")
     def execute(self):
         synchronizeAll(self.comm)
         circle_points = self.__gather_experiments_results()
         all_points = self.experiment_count
-
         calculated_pi = PiCalculator.calculate_pi(circle_points,all_points)
-        print "CONCURRENT Calculated pi = " + str(calculated_pi)
+        return calculated_pi
 
     def __gather_experiments_results(self):
         result = self.comm.reduce(0, root=MPI_ROOT, op=MPI.SUM)
@@ -50,15 +52,16 @@ class PiThreadSlaveWorker:
 
     def execute(self):
         synchronizeAll(self.comm)
-        result = self.__perform_experiment(self.experiment_count, self.radius)
+        result = PiThreadSlaveWorker.__perform_experiment(self.experiment_count, self.radius)
         self.__inform_about_result(result)
-
-    def __perform_experiment(self,experiment_count, radius):
-        picalc = PiCalculator(experiment_count,radius,TypicalRand2DGenerator())
-        return picalc.execute()
 
     def __inform_about_result(self, result):
         self.comm.reduce(result,root=MPI_ROOT, op=MPI.SUM)
+
+    @staticmethod
+    def __perform_experiment(experiment_count, radius):
+        picalc = PiCalculator(experiment_count,radius,TypicalRand2DGenerator())
+        return picalc.execute()
 
 
 

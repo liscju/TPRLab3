@@ -1,5 +1,3 @@
-from commons import pi_execute_observer
-
 __author__ = 'lee'
 
 # Oblicza PI znajdujace sie w 
