@@ -1,1 +1,1 @@
-mpiexec -n 2 python src/main.py 100 10
+mpiexec -n 20 python src/main.py 100 10

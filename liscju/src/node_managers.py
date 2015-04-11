@@ -11,16 +11,15 @@ def synchronizeAll(comm):
 
 
 class PiThreadMaster:
-    def __init__(self, comm, experiment_count, radius):
+    def __init__(self, comm, experiment_count):
         assert comm.rank == 0
         self.comm = comm
         self.experiment_count = experiment_count
-        self.radius = radius
 
     def execute(self):
         synchronizeAll(self.comm)
         circle_points = self.__gather_experiments_results()
-        all_points = self.experiment_count*(self.comm.size-1)
+        all_points = self.experiment_count
 
         calculated_pi = PiCalculator.calculate_pi(circle_points,all_points)
         print "Calculated pi = " + str(calculated_pi)
