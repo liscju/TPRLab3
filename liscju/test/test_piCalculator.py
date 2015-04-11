@@ -7,6 +7,5 @@ __author__ = 'lee'
 
 class TestPiCalculator(TestCase):
     def test_calculate(self):
-        pi_calc = PiCalculator(10000,TypicalRand2DGenerator() )
-        pi = pi_calc.calculate()
-        print "%.10f" % pi
+        pi_calc = PiCalculator(10000,200,TypicalRand2DGenerator())
+        pi_calc.execute()
