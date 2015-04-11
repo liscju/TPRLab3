@@ -22,7 +22,7 @@ class PiThreadMaster:
         all_points = self.experiment_count
 
         calculated_pi = PiCalculator.calculate_pi(circle_points,all_points)
-        print "Calculated pi = " + str(calculated_pi)
+        print "CONCURRENT Calculated pi = " + str(calculated_pi)
 
     def __gather_experiments_results(self):
         result = self.comm.reduce(0, root=MPI_ROOT, op=MPI.SUM)
