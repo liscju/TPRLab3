@@ -6,11 +6,11 @@ __author__ = 'lee'
 # kwadracie -1<=x<=1 -1<=y<=1
 class PiCalculator:
     def __init__(self, experimentCount, radius, rand2DGen):
+        assert experimentCount > 0 and radius > 0
         self.experimentCount = experimentCount
         self.radius = radius
         self.rand2DGen = rand2DGen
 
-    @pi_execute_observer
     def execute(self):
         circle_count = 0
 
