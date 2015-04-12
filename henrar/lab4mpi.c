@@ -32,11 +32,9 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     int count = 0;
     double z;
     double pi;
-    int nodeNumber;
-    int received[nodeNumber];
-    long receivedNumberOfIterations[nodeNumber];
+    int received[*world_size];
+    long receivedNumberOfIterations[*world_size];
     srand(SEED);
-
     if(*world_rank != 0)
     {
         for (int i = 0; i < numberOfIterations; ++i)
@@ -49,7 +47,7 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
                 count++;
             }
         }
-        for(int i = 0; i < nodeNumber; ++i)
+        for(int i = 0; i < *world_size; ++i)
         {
             clock_gettime(CLOCK_MONOTONIC, &beginTime);
             MPI_Send(&count, 1, MPI_INT, 0, *world_rank, MPI_COMM_WORLD);
@@ -58,10 +56,10 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     }
     else if (*world_rank == 0)
     {
-        for(int i = 0; i < nodeNumber; ++i)
+        for(int i = 0; i < *world_size; ++i)
         {
-            MPI_Recv(&received[i], nodeNumber, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(&receivedNumberOfIterations[i], nodeNumber, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&received[i], *world_size, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&receivedNumberOfIterations[i], *world_size, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
 
@@ -69,7 +67,7 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     {
         int finalcount = 0;
         long finalnumberOfIterations = 0;
-        for(int i = 0; i < nodeNumber; ++i)
+        for(int i = 0; i < *world_size; ++i)
         {
             finalcount += received[i];
             finalnumberOfIterations += receivedNumberOfIterations[i];
@@ -93,7 +91,6 @@ int main(int argc, char* argv[])
     int world_size = 0;
     initMPI(&world_size, &world_rank);
     checkAndLaunchProcesses(&world_size, &world_rank, argv);
-    printf("World size: %i , World rank: %i \n", world_size, world_rank);
     MPI_Finalize();
     return 0;
 }
