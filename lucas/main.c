@@ -19,13 +19,17 @@ double PI = 3.141592653589793238462643;
 double myPI, myPIfragment;
 long long int pointCount;
 int type;
+FILE* errorFile;
+FILE* timeFile;
 /* end globals  */
 
 /* helper function declarations */
 void initMPI(int, char**);
+void openFiles();
 double myRandom();
 int isInCircle(double x, double y);
 double absolute(double x);
+void closeFiles();
 /* end helper function declarations */
 
 int main(int argc, char** argv) {
@@ -43,6 +47,10 @@ int main(int argc, char** argv) {
 
 	initMPI(argc, argv);
 	
+	double spentTime;
+
+	spentTime = MPI_Wtime();
+	openFiles();
 	long long int pointsInCircle = 0;
 	long long int i;
 	double x, y;
@@ -64,12 +72,19 @@ int main(int argc, char** argv) {
 	MPI_Reduce(&myPIfragment, &myPI, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	if(myId == MPI_ROOT_ID) {
+		spentTime = MPI_Wtime() - spentTime;
+		if(type == TYPE_SCALING) {
+			spentTime /= numProcs;
+		}
 		myPI = myPI*4;
 		printf("  PI: %.15f\n", PI);	
 		printf("MyPI: %.15f\n", myPI);
 		printf("diff: %.15f\n\n", absolute(PI-myPI));
+		fprintf(errorFile, "%lld %f\n", pointCount, absolute(PI-myPI));
+		fprintf(timeFile, "%d %lld %f\n", numProcs, pointCount, spentTime);		
 	}
 
+	closeFiles();
 	MPI_Finalize();
 }
 
@@ -78,6 +93,19 @@ void initMPI(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myId);
+}
+
+void openFiles() {
+	char filenameBuffer[100];
+	char* typeString;
+	errorFile = fopen("error.txt", "a+");
+	if(type == TYPE_SCALING) {
+		typeString = "scaling";
+	} else {
+		typeString = "basic";
+	}
+	sprintf(filenameBuffer, "%s_%lld.txt", typeString, pointCount);
+	timeFile = fopen(filenameBuffer, "a+");
 }
 
 double myRandom() {
@@ -98,5 +126,10 @@ double absolute(double x) {
 	} else {
 		return x;
 	}
+}
+
+void closeFiles() {
+	fclose(errorFile);
+	fclose(timeFile);
 }
 /* end helper function decfinitions */
