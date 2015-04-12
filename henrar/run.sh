@@ -1,3 +1,8 @@
+cd TPR
+
+module load libs/boost/1.52.0
+module load plgrid/tools/mpich/3.0.4
+
 mpicc -o lab4.out lab4mpi.c -std=gnu99 -lrt -lm
 
 mpiexec -n 1 ./lab4.out 1000000 -b
