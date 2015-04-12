@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <math.h>
-#include "mtwist.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -13,6 +13,7 @@ long long int pointCount;
 /* end globals  */
 
 /* helper function declarations */
+double myRandom();
 int isInCircle(double x, double y);
 /* end helper function declarations */
 
@@ -23,13 +24,13 @@ int main(int argc, char** argv) {
 	}
 	pointCount = atoll(argv[1]);
 	long long int pointsInCircle = 0;
-	mt_seed();
+	srand(time(NULL));
 
 	long long int i;
 	double x, y;
 	for(i = 0; i < pointCount; i++) {
-		x = mt_drand();
-		y = mt_drand();
+		x = myRandom();
+		y = myRandom();
 		if(isInCircle(x, y) == TRUE) {
 			pointsInCircle++;
 		}
@@ -42,6 +43,10 @@ int main(int argc, char** argv) {
 }
 
 /* helper function decfinitions */
+double myRandom() {
+	return (double)rand() / (double)RAND_MAX ;
+}
+
 int isInCircle(double x, double y) {
 	if(sqrt(x*x+y*y) <= 1) {
 		return TRUE;
