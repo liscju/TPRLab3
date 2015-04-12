@@ -46,6 +46,7 @@ def start_concurrent_workers(speedup_type, experiment_count, radius):
 
         worker = PiThreadSlaveWorker(comm, worker_experiment_count, radius, experiment_info)
     worker.execute()
+    MPI.Finalize()
 
 
 def usage():

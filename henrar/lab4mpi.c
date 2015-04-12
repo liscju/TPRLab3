@@ -17,7 +17,7 @@ double myPI, myPIfragment;
 int type = 0;
 FILE* timeFile;
 
-void openFiles(int numberOfIterations)
+void openFiles(long long int numberOfIterations)
 {
     char filenameBuffer[100];
     char* typeString;
@@ -28,7 +28,7 @@ void openFiles(int numberOfIterations)
     {
         typeString = "normal";
     }
-    sprintf(filenameBuffer, "%s_%i.txt", typeString, numberOfIterations);
+    sprintf(filenameBuffer, "%s.txt", typeString);
     timeFile = fopen(filenameBuffer, "a+");
 }
 
@@ -83,7 +83,7 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     double timeDifference = 0.0;
 
     char * temp = argv[1];
-    int numberOfIterations = atoi(temp);
+    long long int numberOfIterations = atoll(temp);
 
     if(strcmp(argv[2], "-sc") == 0)
     {
@@ -126,11 +126,13 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     {
         clock_gettime(CLOCK_MONOTONIC, &endTime);
         timeDifference = calculateTimeDifference(&endTime, &beginTime);
-        if(type == TYPE_SCALING) {
+        if(type == TYPE_SCALING)
+        {
             timeDifference /= (*world_size);
         }
         myPI = myPI*4;
-        fprintf(timeFile, "%d\t%i\t%f\n", *world_size, numberOfIterations, timeDifference);
+        int iterationsToSave = numberOfIterations/(*world_size);
+        fprintf(timeFile, "%d\t%lld\t%f\n", *world_size, iterationsToSave, timeDifference);
         closeFiles();
     }
 }
