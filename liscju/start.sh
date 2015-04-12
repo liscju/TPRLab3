@@ -16,6 +16,7 @@ initialize_result_file
 for PROBLEM_SIZE in $N;do
     python src/main.py sequence basic $PROBLEM_SIZE $R >> result.txt
     for PROCESSORS in $P;do
+        echo "Problem Size: $PROBLEM_SIZE Nodes : $PROCESSORS in progress...."
         mpiexec -n $PROCESSORS python src/main.py concurrent basic $PROBLEM_SIZE $R >> result.txt
         mpiexec -n $PROCESSORS python src/main.py concurrent scale $PROBLEM_SIZE $R >> result.txt
     done
