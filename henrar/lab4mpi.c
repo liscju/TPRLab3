@@ -14,6 +14,28 @@
 
 double piValue = 3.141592653589793238462643;
 double myPI, myPIfragment;
+int type = 0;
+FILE* timeFile;
+
+void openFiles(int numberOfIterations)
+{
+    char filenameBuffer[100];
+    char* typeString;
+    if(type == TYPE_SCALING)
+    {
+        typeString = "scaling";
+    } else
+    {
+        typeString = "normal";
+    }
+    sprintf(filenameBuffer, "%s_%i.txt", typeString, numberOfIterations);
+    timeFile = fopen(filenameBuffer, "a+");
+}
+
+void closeFiles()
+{
+    fclose(timeFile);
+}
 
 double absolute(double x)
 {
@@ -60,10 +82,9 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     struct timespec endTime;
     double timeDifference = 0.0;
 
-    char * tempNoIter = argv[1];
-    long numberOfIterations = atoi(tempNoIter);
+    char * temp = argv[1];
+    int numberOfIterations = atoi(temp);
 
-    int type = 0;
     if(strcmp(argv[2], "-sc") == 0)
     {
         type = TYPE_SCALING;
@@ -72,6 +93,12 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
         type = TYPE_BASIC;
     }
     clock_gettime(CLOCK_MONOTONIC, &beginTime);
+
+    if(*world_rank == 0)
+    {
+        openFiles(numberOfIterations);
+    }
+
     if(type == TYPE_SCALING)
     {
         numberOfIterations *= (*world_size);
@@ -95,7 +122,6 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     }
     myPIfragment = (double)pointsInCircle / (double)(numberOfIterations);
     MPI_Reduce(&myPIfragment, &myPI, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
     if(*world_rank == 0)
     {
         clock_gettime(CLOCK_MONOTONIC, &endTime);
@@ -104,9 +130,8 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
             timeDifference /= (*world_size);
         }
         myPI = myPI*4;
-        printf("  PI: %.15f\n", piValue);
-        printf("MyPI: %.15f\n", myPI);
-        printf("diff: %.15f\n\n", absolute(piValue-myPI));
+        fprintf(timeFile, "%d\t%i\t%f\n", *world_size, numberOfIterations, timeDifference);
+        closeFiles();
     }
 }
 
@@ -114,7 +139,6 @@ int main(int argc, char* argv[])
 {
     if(argc != 3)
     {
-        printf("Must have 3 arguments\n");
         return 6;
     }
     int world_rank = 0;
