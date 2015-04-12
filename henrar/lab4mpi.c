@@ -7,15 +7,38 @@
 #include <string.h>
 
 #define SEED 35791246
-double piValue = 3.141592653589793238462643;
 #define TYPE_BASIC 0
 #define TYPE_SCALING 1
+#define TRUE 1
+#define FALSE 0
 
-double absolute(double x) {
-    if(x<0) {
+double piValue = 3.141592653589793238462643;
+double myPI, myPIfragment;
+
+double absolute(double x)
+{
+    if(x < 0)
+    {
         return x*-1;
-    } else {
+    } else
+    {
         return x;
+    }
+}
+
+double myRandom()
+{
+    return (double)rand() / (double)RAND_MAX ;
+}
+
+int isInCircle(double x, double y)
+{
+    if(sqrt(x*x+y*y) <= 1)
+    {
+        return TRUE;
+    } else
+    {
+        return FALSE;
     }
 }
 
@@ -39,66 +62,51 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
 
     char * tempNoIter = argv[1];
     long numberOfIterations = atoi(tempNoIter);
-    double x,y;
-    int count = 0;
-    double z;
-    double pi;
-    int received[*world_size];
-    long receivedNumberOfIterations[*world_size];
 
     int type = 0;
-    if(strcmp(argv[2], "-s") == 0) {
+    if(strcmp(argv[2], "-sc") == 0)
+    {
         type = TYPE_SCALING;
-    } else {
+    } else
+    {
         type = TYPE_BASIC;
     }
-
-    if(type == TYPE_SCALING) {
+    clock_gettime(CLOCK_MONOTONIC, &beginTime);
+    if(type == TYPE_SCALING)
+    {
         numberOfIterations *= (*world_size);
     }
 
     srand(time(NULL)+(*world_rank)*1000);
-    if(*world_rank != 0)
-    {
-        for (int i = 0; i < numberOfIterations; ++i)
-        {
-            x= ((double)rand())/RAND_MAX;
-            y =((double)rand())/RAND_MAX;
-            z = sqrt(x*x+y*y);
-            if (z <= 1)
-            {
-                count++;
-            }
-        }
-        for(int i = 0; i < *world_size; ++i)
-        {
-        clock_gettime(CLOCK_MONOTONIC, &beginTime);
-            MPI_Send(&count, 1, MPI_INT, 0, *world_rank, MPI_COMM_WORLD);
-            MPI_Send(&numberOfIterations, 1, MPI_LONG, 0, *world_rank, MPI_COMM_WORLD);
-        }
-    }
-    else if (*world_rank == 0)
-    {
-        for(int i = 0; i < *world_size; ++i)
-        {
-            MPI_Recv(&received[i], *world_size, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(&receivedNumberOfIterations[i], *world_size, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
-    }
 
-    if (*world_rank == 0)
+    long long int pointsInCircle = 0;
+    long long int i;
+    double x, y;
+    int myCount = 0;
+    for(i = *world_rank; i < numberOfIterations; i=i+(*world_size))
     {
-        int finalcount = 0;
-        long finalnumberOfIterations = 0;
-        for(int i = 0; i < *world_size; ++i)
+        x = myRandom();
+        y = myRandom();
+        if(isInCircle(x, y) == TRUE)
         {
-            finalcount += received[i];
-            finalnumberOfIterations += receivedNumberOfIterations[i];
+            pointsInCircle++;
         }
+        myCount++;
+    }
+    myPIfragment = (double)pointsInCircle / (double)(numberOfIterations);
+    MPI_Reduce(&myPIfragment, &myPI, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if(*world_rank == 0)
+    {
         clock_gettime(CLOCK_MONOTONIC, &endTime);
         timeDifference = calculateTimeDifference(&endTime, &beginTime);
-        pi = ((double)finalcount/(double)finalnumberOfIterations)*4.0;
-        printf("Pi: %.15f\n", pi);
+        if(type == TYPE_SCALING) {
+            timeDifference /= (*world_size);
+        }
+        myPI = myPI*4;
+        printf("  PI: %.15f\n", piValue);
+        printf("MyPI: %.15f\n", myPI);
+        printf("diff: %.15f\n\n", absolute(piValue-myPI));
     }
 }
 
