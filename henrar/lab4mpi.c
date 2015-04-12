@@ -26,32 +26,34 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     struct timespec endTime;
     double timeDifference = 0.0;
 
-    long numberOfIterations = 1000000;
-    double x,y;                     //x,y value for the random coordinate
-    int count = 0;                 //Count holds all the number of how many good coordinates
-    double z;                       //Used to check if x^2+y^2<=1
-    double pi;                      //holds approx value of pi
+    char * tempNoIter = argv[1];
+    long numberOfIterations = atoi(tempNoIter);
+    double x,y;
+    int count = 0;
+    double z;
+    double pi;
     int nodeNumber;
     int received[nodeNumber];
     long receivedNumberOfIterations[nodeNumber];
-    srand(SEED);                        //Give rand() a seed value
+    srand(SEED);
 
     if(*world_rank != 0)
     {
-        for (int i = 0; i < numberOfIterations; ++i)                  //main loop
+        for (int i = 0; i < numberOfIterations; ++i)
         {
-            x= ((double)rand())/RAND_MAX;           //gets a random x coordinate
-            y =((double)rand())/RAND_MAX;           //gets a random y coordinate
-            z = sqrt(x*x+y*y);                  //Checks to see if number in inside unit circle
+            x= ((double)rand())/RAND_MAX;
+            y =((double)rand())/RAND_MAX;
+            z = sqrt(x*x+y*y);
             if (z <= 1)
             {
-                count++;                //if it is, consider it a valid random point
+                count++;
             }
         }
         for(int i = 0; i < nodeNumber; ++i)
         {
-            MPI_Send(&count, 1, MPI_INT, 0, world_rank, MPI_COMM_WORLD);
-            MPI_Send(&numberOfIterations, 1, MPI_LONG, 0, world_rank, MPI_COMM_WORLD);
+            clock_gettime(CLOCK_MONOTONIC, &beginTime);
+            MPI_Send(&count, 1, MPI_INT, 0, *world_rank, MPI_COMM_WORLD);
+            MPI_Send(&numberOfIterations, 1, MPI_LONG, 0, *world_rank, MPI_COMM_WORLD);
         }
     }
     else if (*world_rank == 0)
@@ -63,7 +65,7 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
         }
     }
 
-    if (*world_rank == 0)                      //if root process
+    if (*world_rank == 0)
     {
         int finalcount = 0;
         long finalnumberOfIterations = 0;
@@ -72,18 +74,25 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
             finalcount += received[i];
             finalnumberOfIterations += receivedNumberOfIterations[i];
         }
-
-        pi = ((double)finalcount/(double)finalnumberOfIterations)*4.0;               //p = 4(m/n)
-        printf("Pi: %f\n", pi);             //Print the calculated value of pi
+        clock_gettime(CLOCK_MONOTONIC, &endTime);
+        timeDifference = calculateTimeDifference(&endTime, &beginTime);
+        pi = ((double)finalcount/(double)finalnumberOfIterations)*4.0;
+        printf("Pi: %.15f\n", pi);
 
     }
 }
 
 int main(int argc, char* argv[])
 {
+    if(argc != 3)
+    {
+        printf("Must have 3 arguments\n");
+        return 6;
+    }
     int world_rank = 0;
     int world_size = 0;
     initMPI(&world_size, &world_rank);
+    checkAndLaunchProcesses(&world_size, &world_rank, argv);
     printf("World size: %i , World rank: %i \n", world_size, world_rank);
     MPI_Finalize();
     return 0;
