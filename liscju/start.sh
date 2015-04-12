@@ -9,7 +9,7 @@ function initialize_result_file {
 }
 
 R=10
-N="10000000 1000000000 100000000000"
+N="100000 1000000 10000000"
 P="3 4 5 6 7 8 9 10"
 
 initialize_result_file
