@@ -4,9 +4,20 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <string.h>
 
 #define SEED 35791246
 double piValue = 3.141592653589793238462643;
+#define TYPE_BASIC 0
+#define TYPE_SCALING 1
+
+double absolute(double x) {
+    if(x<0) {
+        return x*-1;
+    } else {
+        return x;
+    }
+}
 
 double calculateTimeDifference(struct timespec * endTime, struct timespec * beginTime)
 {
@@ -34,7 +45,19 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     double pi;
     int received[*world_size];
     long receivedNumberOfIterations[*world_size];
-    srand(SEED);
+
+    int type = 0;
+    if(strcmp(argv[2], "-s") == 0) {
+        type = TYPE_SCALING;
+    } else {
+        type = TYPE_BASIC;
+    }
+
+    if(type == TYPE_SCALING) {
+        numberOfIterations *= (*world_size);
+    }
+
+    srand(time(NULL)+(*world_rank)*1000);
     if(*world_rank != 0)
     {
         for (int i = 0; i < numberOfIterations; ++i)
@@ -49,7 +72,7 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
         }
         for(int i = 0; i < *world_size; ++i)
         {
-            clock_gettime(CLOCK_MONOTONIC, &beginTime);
+        clock_gettime(CLOCK_MONOTONIC, &beginTime);
             MPI_Send(&count, 1, MPI_INT, 0, *world_rank, MPI_COMM_WORLD);
             MPI_Send(&numberOfIterations, 1, MPI_LONG, 0, *world_rank, MPI_COMM_WORLD);
         }
@@ -76,7 +99,6 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
         timeDifference = calculateTimeDifference(&endTime, &beginTime);
         pi = ((double)finalcount/(double)finalnumberOfIterations)*4.0;
         printf("Pi: %.15f\n", pi);
-
     }
 }
 
