@@ -4,9 +4,65 @@
 #include <time.h>
 #include <sys/time.h>
 #include <stdio.h>
+#include <string.h>
 
 #define SEED 35791246
+#define TYPE_BASIC 0
+#define TYPE_SCALING 1
+#define TRUE 1
+#define FALSE 0
+
 double piValue = 3.141592653589793238462643;
+double myPI, myPIfragment;
+int type = 0;
+FILE* timeFile;
+
+void openFiles(int numberOfIterations)
+{
+    char filenameBuffer[100];
+    char* typeString;
+    if(type == TYPE_SCALING)
+    {
+        typeString = "scaling";
+    } else
+    {
+        typeString = "normal";
+    }
+    sprintf(filenameBuffer, "%s_%i.txt", typeString, numberOfIterations);
+    timeFile = fopen(filenameBuffer, "a+");
+}
+
+void closeFiles()
+{
+    fclose(timeFile);
+}
+
+double absolute(double x)
+{
+    if(x < 0)
+    {
+        return x*-1;
+    } else
+    {
+        return x;
+    }
+}
+
+double myRandom()
+{
+    return (double)rand() / (double)RAND_MAX ;
+}
+
+int isInCircle(double x, double y)
+{
+    if(sqrt(x*x+y*y) <= 1)
+    {
+        return TRUE;
+    } else
+    {
+        return FALSE;
+    }
+}
 
 double calculateTimeDifference(struct timespec * endTime, struct timespec * beginTime)
 {
@@ -26,59 +82,56 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     struct timespec endTime;
     double timeDifference = 0.0;
 
-    char * tempNoIter = argv[1];
-    long numberOfIterations = atoi(tempNoIter);
-    double x,y;
-    int count = 0;
-    double z;
-    double pi;
-    int nodeNumber;
-    int received[nodeNumber];
-    long receivedNumberOfIterations[nodeNumber];
-    srand(SEED);
+    char * temp = argv[1];
+    int numberOfIterations = atoi(temp);
 
-    if(*world_rank != 0)
+    if(strcmp(argv[2], "-sc") == 0)
     {
-        for (int i = 0; i < numberOfIterations; ++i)
-        {
-            x= ((double)rand())/RAND_MAX;
-            y =((double)rand())/RAND_MAX;
-            z = sqrt(x*x+y*y);
-            if (z <= 1)
-            {
-                count++;
-            }
-        }
-        for(int i = 0; i < nodeNumber; ++i)
-        {
-            clock_gettime(CLOCK_MONOTONIC, &beginTime);
-            MPI_Send(&count, 1, MPI_INT, 0, *world_rank, MPI_COMM_WORLD);
-            MPI_Send(&numberOfIterations, 1, MPI_LONG, 0, *world_rank, MPI_COMM_WORLD);
-        }
+        type = TYPE_SCALING;
+    } else
+    {
+        type = TYPE_BASIC;
     }
-    else if (*world_rank == 0)
+    clock_gettime(CLOCK_MONOTONIC, &beginTime);
+
+    if(*world_rank == 0)
     {
-        for(int i = 0; i < nodeNumber; ++i)
-        {
-            MPI_Recv(&received[i], nodeNumber, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            MPI_Recv(&receivedNumberOfIterations[i], nodeNumber, MPI_LONG, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        }
+        openFiles(numberOfIterations);
     }
 
-    if (*world_rank == 0)
+    if(type == TYPE_SCALING)
     {
-        int finalcount = 0;
-        long finalnumberOfIterations = 0;
-        for(int i = 0; i < nodeNumber; ++i)
+        numberOfIterations *= (*world_size);
+    }
+
+    srand(time(NULL)+(*world_rank)*1000);
+
+    long long int pointsInCircle = 0;
+    long long int i;
+    double x, y;
+    int myCount = 0;
+    for(i = *world_rank; i < numberOfIterations; i=i+(*world_size))
+    {
+        x = myRandom();
+        y = myRandom();
+        if(isInCircle(x, y) == TRUE)
         {
-            finalcount += received[i];
-            finalnumberOfIterations += receivedNumberOfIterations[i];
+            pointsInCircle++;
         }
+        myCount++;
+    }
+    myPIfragment = (double)pointsInCircle / (double)(numberOfIterations);
+    MPI_Reduce(&myPIfragment, &myPI, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    if(*world_rank == 0)
+    {
         clock_gettime(CLOCK_MONOTONIC, &endTime);
         timeDifference = calculateTimeDifference(&endTime, &beginTime);
-        pi = ((double)finalcount/(double)finalnumberOfIterations)*4.0;
-        printf("Pi: %.15f\n", pi);
-
+        if(type == TYPE_SCALING) {
+            timeDifference /= (*world_size);
+        }
+        myPI = myPI*4;
+        fprintf(timeFile, "%d\t%i\t%f\n", *world_size, numberOfIterations, timeDifference);
+        closeFiles();
     }
 }
 
@@ -86,14 +139,12 @@ int main(int argc, char* argv[])
 {
     if(argc != 3)
     {
-        printf("Must have 3 arguments\n");
         return 6;
     }
     int world_rank = 0;
     int world_size = 0;
     initMPI(&world_size, &world_rank);
     checkAndLaunchProcesses(&world_size, &world_rank, argv);
-    printf("World size: %i , World rank: %i \n", world_size, world_rank);
     MPI_Finalize();
     return 0;
 }

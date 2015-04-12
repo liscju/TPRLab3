@@ -11,9 +11,10 @@ def synchronizeAll(comm):
     comm.barrier()
 
 class PiSequenceWorker:
-    def __init__(self,experiment_count,radius):
+    def __init__(self, experiment_count, radius, experiment_info):
         self.experiment_count = experiment_count
         self.radius = radius
+        self.experiment_info = experiment_info
 
     @pi_execute_reporter("SEQUENCE")
     def execute(self):
@@ -25,10 +26,11 @@ class PiSequenceWorker:
 
 
 class PiThreadMasterWorker:
-    def __init__(self, comm, experiment_count):
+    def __init__(self, comm, experiment_count, experiment_info):
         assert comm.rank == 0
         self.comm = comm
         self.experiment_count = experiment_count
+        self.experiment_info = experiment_info
 
     @pi_execute_reporter("CONCURRENT")
     def execute(self):
@@ -44,11 +46,12 @@ class PiThreadMasterWorker:
 
 
 class PiThreadSlaveWorker:
-    def __init__(self, comm, experiment_count, radius):
+    def __init__(self, comm, experiment_count, radius, experiment_info):
         assert comm.rank != 0
         self.comm = comm
         self.experiment_count = experiment_count
         self.radius = radius
+        self.experiment_info = experiment_info
 
     def execute(self):
         synchronizeAll(self.comm)
