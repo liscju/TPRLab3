@@ -87,7 +87,8 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     {
         type = TYPE_BASIC;
     }
-    
+    clock_gettime(CLOCK_MONOTONIC, &beginTime);
+
     if(*world_rank == 0)
     {
         openFiles(numberOfIterations);
@@ -97,7 +98,7 @@ void checkAndLaunchProcesses(int * world_size, int * world_rank, char * argv[])
     {
         numberOfIterations *= (*world_size);
     }
-    clock_gettime(CLOCK_MONOTONIC, &beginTime);
+
     srand(time(NULL)+(*world_rank)*1000);
 
     long long int pointsInCircle = 0;
